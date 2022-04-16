@@ -1,17 +1,19 @@
 package main
 
 import (
+	"admin-ambassador-checkout/src/database"
 	"github.com/gofiber/fiber/v2"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 func main() {
-	_, err := gorm.Open(mysql.Open("root:root@tcp(db:3306)/ambassador"), &gorm.Config{})
-
-	if err != nil {
-		panic("Could not connect with the database!")
-	}
+	//user := os.Getenv("MySQL_USER")
+	//pass := os.Getenv("MYSQL_PASSWORD")
+	//host := os.Getenv("MYSQL_HOST") //Here!!
+	//dbname := os.Getenv("MYSQL_DATABASE")
+	//connection := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True&loc=Local", user, pass, host, dbname) //Fix!!
+	//_, err := gorm.Open(mysql.Open(connection))
+	database.Connect()
+	database.AutoMigrate()
 
 	app := fiber.New()
 
