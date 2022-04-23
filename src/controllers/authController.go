@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"admin-ambassador-checkout/src/database"
+	"admin-ambassador-checkout/src/middlewares"
 	"admin-ambassador-checkout/src/models"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
@@ -90,24 +91,11 @@ func Login(c *fiber.Ctx) error {
 }
 
 func User(c *fiber.Ctx) error {
-	cookie := c.Cookies("jwt")
-
-	token, err := jwt.ParseWithClaims(cookie, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte("secret"), nil
-	})
-
-	if err != nil || !token.Valid {
-		c.Status(fiber.StatusUnauthorized)
-		return c.JSON(fiber.Map{
-			"message": "unauthenticated",
-		})
-	}
-
-	payload := token.Claims.(*jwt.StandardClaims)
+	id, _ := middlewares.GetUserId(c)
 
 	var user models.User
 
-	database.DB.Where("id = ?", payload.Subject).First(&user)
+	database.DB.Where("id = ?", id).First(&user)
 
 	return c.JSON(user)
 }
