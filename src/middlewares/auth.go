@@ -32,7 +32,7 @@ func IsAuthenticated(c *fiber.Ctx) error {
 	payload := token.Claims.(*ClaimsWithScope)
 	isAmbassador := strings.Contains(c.Path(), "/api/ambassador")
 
-	if (payload.Scope == "admin" && isAmbassador) || (payload.Scope == "ambassador" && isAmbassador) {
+	if (payload.Scope == "admin" && isAmbassador) || (payload.Scope == "ambassador" && !isAmbassador) {
 		c.Status(fiber.StatusUnauthorized)
 		return c.JSON(fiber.Map{
 			"message": "unauthorized",
