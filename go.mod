@@ -3,7 +3,7 @@ module admin-ambassador-checkout
 go 1.17
 
 require (
-	github.com/bxcodec/faker/v3 v3.8.0 // indirect
+	github.com/bxcodec/faker/v3 v3.8.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.32.0
