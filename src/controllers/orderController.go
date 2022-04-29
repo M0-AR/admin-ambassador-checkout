@@ -64,7 +64,15 @@ func CreateOrder(c *fiber.Ctx) error {
 		Zip:             request.Zip,
 	}
 
-	database.DB.Create(&order)
+	transaction := database.DB.Begin()
+
+	if err := transaction.Create(&order).Error; err != nil {
+		transaction.Rollback()
+		c.Status(fiber.StatusBadRequest)
+		return c.JSON(fiber.Map{
+			"message": err.Error(),
+		})
+	}
 
 	for _, requestProduct := range request.Products {
 		product := models.Product{}
@@ -82,8 +90,16 @@ func CreateOrder(c *fiber.Ctx) error {
 			AdminRevenue:      0.9 * total,
 		}
 
-		database.DB.Create(&item)
+		if err := transaction.Create(&item).Error; err != nil {
+			transaction.Rollback()
+			c.Status(fiber.StatusBadRequest)
+			return c.JSON(fiber.Map{
+				"message": err.Error(),
+			})
+		}
 	}
+
+	transaction.Commit()
 
 	return c.JSON(order)
 }
