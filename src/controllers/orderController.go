@@ -4,11 +4,11 @@ import (
 	"admin-ambassador-checkout/src/database"
 	"admin-ambassador-checkout/src/models"
 	"context"
-	"fmt"
+	"encoding/json"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/checkout/session"
-	"net/smtp"
 )
 
 func Orders(c *fiber.Ctx) error {
@@ -188,11 +188,39 @@ func CompleteOrder(c *fiber.Ctx) error {
 
 		database.Cache.ZIncrBy(context.Background(), "rankings", ambassadorRevenue, user.Name())
 
-		ambassadorMessage := []byte(fmt.Sprintf("You earned &%f from the link #%s", ambassadorRevenue, order.Code))
-		smtp.SendMail("host.docker.internal:1025", nil, "no-reply@email.com", []string{order.AmbassadorEmail}, ambassadorMessage)
+		producer, err := kafka.NewProducer(&kafka.ConfigMap{
+			"bootstrap.servers": "pkc-4ygn6.europe-west3.gcp.confluent.cloud:9092",
+			"security.protocol": "SASL_SSL",
+			"sasl.username":     "63UVCVFVTBPESSWN",
+			"sasl.password":     "OxmD4lsSR8xT9CfQbjnLnaX3o1VX0W2qpyxP8YH8B/vPA4GlMHjgoV/bYTkx15Gx",
+			"sasl.mechanism":    "PLAIN",
+		})
 
-		adminMessage := []byte(fmt.Sprintf("Order #%d with a total of $%f has been completed", order.Id, adminRevenue))
-		smtp.SendMail("host.docker.internal:1025", nil, "no-reply@email.com", []string{"admin@admin.com"}, adminMessage)
+		if err != nil {
+			panic(err)
+		}
+
+		defer producer.Close()
+
+		topic := "default"
+
+		message := map[string]interface{}{
+			"id":                 order.Id,
+			"ambassador_revenue": ambassadorRevenue,
+			"admin_revenue":      adminRevenue,
+			"code":               order.Code,
+			"ambassador_email":   order.AmbassadorEmail,
+		}
+
+		value, _ := json.Marshal(message)
+
+		producer.Produce(&kafka.Message{
+			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+			Value:          value,
+		}, nil)
+
+		// Wait for message deliveries before shutting down
+		producer.Flush(15 * 1000)
 	}(order)
 
 	return c.JSON(fiber.Map{
