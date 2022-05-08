@@ -87,17 +87,25 @@ func Login(c *fiber.Ctx) error {
 }
 
 func User(c *fiber.Ctx) error {
-	id, _ := middlewares.GetUserId(c)
+	req, err := http.NewRequest("GET", "http://172.17.0.1:8001/api/user", nil)
+
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Cookie", "jwt="+c.Cookies("jwt", ""))
+
+	client := http.Client{}
+
+	response, err := client.Do(req)
+
+	if err != nil {
+		return err
+	}
 
 	var user models.User
 
-	database.DB.Where("id = ?", id).First(&user)
-
-	if strings.Contains(c.Path(), "/api/ambassador") {
-		ambassador := models.Ambassador(user)
-		ambassador.CalculateRevenue(database.DB)
-		return c.JSON(ambassador)
-	}
+	json.NewDecoder(response.Body).Decode(&user)
 
 	return c.JSON(user)
 }
