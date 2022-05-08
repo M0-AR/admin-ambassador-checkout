@@ -4,10 +4,9 @@ import (
 	"admin-ambassador-checkout/src/database"
 	"admin-ambassador-checkout/src/middlewares"
 	"admin-ambassador-checkout/src/models"
-	"bytes"
+	"admin-ambassador-checkout/src/services"
 	"encoding/json"
 	"github.com/gofiber/fiber/v2"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -22,13 +21,7 @@ func Register(c *fiber.Ctx) error {
 
 	data["is_ambassador"] = strconv.FormatBool(strings.Contains(c.Path(), "/api/ambassador"))
 
-	jsonData, err := json.Marshal(data)
-
-	if err != nil {
-		return err
-	}
-
-	response, err := http.Post("http://172.17.0.1:8001/api/register", "application/json", bytes.NewBuffer(jsonData))
+	response, err := services.Request("POST", "register", "", data)
 
 	if err != nil {
 		return err
@@ -56,13 +49,7 @@ func Login(c *fiber.Ctx) error {
 		data["scope"] = "admin"
 	}
 
-	jsonData, err := json.Marshal(data)
-
-	if err != nil {
-		return err
-	}
-
-	response, err := http.Post("http://172.17.0.1:8001/api/login", "application/json", bytes.NewBuffer(jsonData))
+	response, err := services.Request("POST", "login", "", data)
 
 	if err != nil {
 		return err
@@ -87,17 +74,7 @@ func Login(c *fiber.Ctx) error {
 }
 
 func User(c *fiber.Ctx) error {
-	req, err := http.NewRequest("GET", "http://172.17.0.1:8001/api/user", nil)
-
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("Cookie", "jwt="+c.Cookies("jwt", ""))
-
-	client := http.Client{}
-
-	response, err := client.Do(req)
+	response, err := services.Request("GET", "user", c.Cookies("jwt", ""), nil)
 
 	if err != nil {
 		return err
