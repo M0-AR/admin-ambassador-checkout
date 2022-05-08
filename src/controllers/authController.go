@@ -21,7 +21,7 @@ func Register(c *fiber.Ctx) error {
 
 	data["is_ambassador"] = strconv.FormatBool(strings.Contains(c.Path(), "/api/ambassador"))
 
-	response, err := services.Request("POST", "register", "", data)
+	response, err := services.UserService.Post("register", "", data)
 
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func Login(c *fiber.Ctx) error {
 		data["scope"] = "admin"
 	}
 
-	response, err := services.Request("POST", "login", "", data)
+	response, err := services.UserService.Post("login", "", data)
 
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func Login(c *fiber.Ctx) error {
 }
 
 func User(c *fiber.Ctx) error {
-	response, err := services.Request("GET", "user", c.Cookies("jwt", ""), nil)
+	response, err := services.UserService.Get("user", c.Cookies("jwt", ""))
 
 	if err != nil {
 		return err

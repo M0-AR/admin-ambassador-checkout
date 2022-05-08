@@ -3,6 +3,7 @@ package main
 import (
 	"admin-ambassador-checkout/src/database"
 	"admin-ambassador-checkout/src/routes"
+	"admin-ambassador-checkout/src/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
@@ -12,6 +13,7 @@ func main() {
 	database.AutoMigrate()
 	database.SetupRedis()
 	database.SetupCacheChannel()
+	services.Setup()
 
 	app := fiber.New()
 
