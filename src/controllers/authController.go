@@ -4,7 +4,11 @@ import (
 	"admin-ambassador-checkout/src/database"
 	"admin-ambassador-checkout/src/middlewares"
 	"admin-ambassador-checkout/src/models"
+	"bytes"
+	"encoding/json"
 	"github.com/gofiber/fiber/v2"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,22 +20,23 @@ func Register(c *fiber.Ctx) error {
 		return err
 	}
 
-	if data["password"] != data["password_confirm"] {
-		c.Status(400)
-		return c.JSON(fiber.Map{
-			"message": "passwords do not match",
-		})
+	data["is_ambassador"] = strconv.FormatBool(strings.Contains(c.Path(), "/api/ambassador"))
+
+	jsonData, err := json.Marshal(data)
+
+	if err != nil {
+		return err
 	}
 
-	user := models.User{
-		FirstName:    data["first_name"],
-		LastName:     data["last_name"],
-		Email:        data["email"],
-		IsAmbassador: strings.Contains(c.Path(), "/api/ambassador"),
-	}
-	user.SetPassword(data["password"])
+	response, err := http.Post("http://172.17.0.1:8001/api/register", "application/json", bytes.NewBuffer(jsonData))
 
-	database.DB.Create(&user)
+	if err != nil {
+		return err
+	}
+
+	var user models.User
+
+	json.NewDecoder(response.Body).Decode(&user)
 
 	return c.JSON(user)
 }
