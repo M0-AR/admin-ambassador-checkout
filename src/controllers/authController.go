@@ -84,10 +84,18 @@ func User(c *fiber.Ctx) error {
 
 	json.NewDecoder(response.Body).Decode(&user)
 
+	if user.Id == 0 {
+		return c.JSON(fiber.Map{
+			"message": "unauthenticated user",
+		})
+	}
+
 	return c.JSON(user)
 }
 
 func Logout(c *fiber.Ctx) error {
+	services.UserService.Post("logout", c.Cookies("jwt", ""), nil)
+
 	cookie := fiber.Cookie{
 		Name:     "jwt",
 		Value:    "",
