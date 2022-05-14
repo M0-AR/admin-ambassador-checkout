@@ -1,7 +1,9 @@
 package services
 
-var UserService Service
+import "github.com/M0-AR/go-user-service"
+
+var UserService services.Service
 
 func Setup() {
-	UserService = CreateService("http://users-ms:8000/api/")
+	UserService = services.CreateService("http://users-ms:8000/api/")
 }
