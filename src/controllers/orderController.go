@@ -3,8 +3,10 @@ package controllers
 import (
 	"admin-ambassador-checkout/src/database"
 	"admin-ambassador-checkout/src/models"
+	"admin-ambassador-checkout/src/services"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stripe/stripe-go/v72"
@@ -47,7 +49,17 @@ func CreateOrder(c *fiber.Ctx) error {
 		Code: request.Code,
 	}
 
-	database.DB.Preload("User").First(&link)
+	database.DB.First(&link)
+
+	response, err := services.UserService.Get(fmt.Sprintf("users/%d", link.UserId), "")
+
+	if err != nil {
+		return err
+	}
+
+	var user models.User
+
+	json.NewDecoder(response.Body).Decode(&user)
 
 	if link.Id == 0 {
 		c.Status(fiber.StatusBadRequest)
@@ -59,7 +71,7 @@ func CreateOrder(c *fiber.Ctx) error {
 	order := models.Order{
 		Code:            link.Code,
 		UserId:          link.UserId,
-		AmbassadorEmail: link.User.Email,
+		AmbassadorEmail: user.Email,
 		FirstName:       request.FirstName,
 		LastName:        request.LastName,
 		Email:           request.Email,
@@ -181,10 +193,15 @@ func CompleteOrder(c *fiber.Ctx) error {
 			adminRevenue += item.AdminRevenue
 		}
 
-		user := models.User{}
-		user.Id = order.UserId
+		response, err := services.UserService.Get(fmt.Sprintf("users/%d", order.UserId), "")
 
-		database.DB.First(&user)
+		if err != nil {
+			panic(err)
+		}
+
+		var user models.User
+
+		json.NewDecoder(response.Body).Decode(&user)
 
 		database.Cache.ZIncrBy(context.Background(), "rankings", ambassadorRevenue, user.Name())
 
