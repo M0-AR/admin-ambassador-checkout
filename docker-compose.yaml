@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.9'
 services:
     backend:
       build: .
@@ -9,6 +9,9 @@ services:
       depends_on:
         - db
         - redis
+      networks:
+        - monolith
+        - users
 
     db:
       image: mysql:5.7.22
@@ -22,8 +25,18 @@ services:
         - .dbdata:/var/lib/mysql
       ports:
         - "33066:3306"
+      networks:
+        - monolith
 
     redis:
       image: redis:latest
       ports:
         - "6379:6379"
+      networks:
+        - monolith
+
+networks:
+  users:
+    external:
+      name: users
+  monolith:
