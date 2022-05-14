@@ -1,11 +1,11 @@
 package middlewares
 
 import (
+	"admin-ambassador-checkout/src/models"
+	"admin-ambassador-checkout/src/services"
+	"encoding/json"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gofiber/fiber/v2"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const SecretKey = "secret"
@@ -16,55 +16,27 @@ type ClaimsWithScope struct {
 }
 
 func IsAuthenticated(c *fiber.Ctx) error {
-	cookie := c.Cookies("jwt")
+	response, err := services.UserService.Get("user", c.Cookies("jwt", ""))
 
-	token, err := jwt.ParseWithClaims(cookie, &ClaimsWithScope{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(SecretKey), nil
-	})
-
-	if err != nil || !token.Valid {
+	if err != nil {
 		c.Status(fiber.StatusUnauthorized)
 		return c.JSON(fiber.Map{
 			"message": "unauthenticated",
 		})
 	}
 
-	payload := token.Claims.(*ClaimsWithScope)
-	isAmbassador := strings.Contains(c.Path(), "/api/ambassador")
+	var user models.User
 
-	if (payload.Scope == "admin" && isAmbassador) || (payload.Scope == "ambassador" && !isAmbassador) {
+	json.NewDecoder(response.Body).Decode(&user)
+
+	if user.Id == 0 {
 		c.Status(fiber.StatusUnauthorized)
 		return c.JSON(fiber.Map{
-			"message": "unauthorized",
+			"message": "unauthenticated",
 		})
 	}
 
+	c.Context().SetUserValue("user", user)
+
 	return c.Next()
-}
-
-func GenerateJWT(id uint, scope string) (string, error) {
-	payload := ClaimsWithScope{}
-	payload.Subject = strconv.Itoa(int(id))
-	payload.ExpiresAt = time.Now().Add(time.Hour * 24).Unix() // One day
-	payload.Scope = scope
-
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, payload).SignedString([]byte(SecretKey))
-}
-
-func GetUserId(c *fiber.Ctx) (uint, error) {
-	cookie := c.Cookies("jwt")
-
-	token, err := jwt.ParseWithClaims(cookie, &ClaimsWithScope{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(SecretKey), nil
-	})
-
-	if err != nil {
-		return 0, err
-	}
-
-	payload := token.Claims.(*ClaimsWithScope)
-
-	id, _ := strconv.Atoi(payload.Subject)
-
-	return uint(id), nil
 }
