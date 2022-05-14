@@ -25,6 +25,14 @@ func (service *Service) Post(path, cookie string, body map[string]string) (*http
 	return service.request("POST", path, cookie, body)
 }
 
+func (service *Service) Put(path, cookie string, body map[string]string) (*http.Response, error) {
+	return service.request("PUT", path, cookie, body)
+}
+
+func (service *Service) Delete(path, cookie string, body map[string]string) (*http.Response, error) {
+	return service.request("DELETE", path, cookie, body)
+}
+
 func (service *Service) request(method, path, cookie string, body map[string]string) (*http.Response, error) {
 	var data io.Reader = nil
 

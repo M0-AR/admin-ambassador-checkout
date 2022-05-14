@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"admin-ambassador-checkout/src/database"
-	"admin-ambassador-checkout/src/middlewares"
 	"admin-ambassador-checkout/src/models"
 	"admin-ambassador-checkout/src/services"
 	"encoding/json"
@@ -117,16 +115,15 @@ func UpdateInfo(c *fiber.Ctx) error {
 		return err
 	}
 
-	id, _ := middlewares.GetUserId(c)
+	response, err := services.UserService.Put("users/info", c.Cookies("jwt", ""), data)
 
-	user := models.User{
-		FirstName: data["first_name"],
-		LastName:  data["last_name"],
-		Email:     data["email"],
+	if err != nil {
+		return err
 	}
-	user.Id = id
 
-	database.DB.Model(&user).Updates(&user)
+	var user models.User
+
+	json.NewDecoder(response.Body).Decode(&user)
 
 	return c.JSON(user)
 }
@@ -138,21 +135,15 @@ func UpdatePassword(c *fiber.Ctx) error {
 		return err
 	}
 
-	if data["password"] != data["password_confirm"] {
-		c.Status(400)
-		return c.JSON(fiber.Map{
-			"message": "passwords do not match",
-		})
+	response, err := services.UserService.Put("users/password", c.Cookies("jwt", ""), data)
+
+	if err != nil {
+		return err
 	}
 
-	id, _ := middlewares.GetUserId(c)
+	var user models.User
 
-	user := models.User{}
-	user.Id = id
-
-	user.SetPassword(data["password"])
-
-	database.DB.Model(&user).Updates(&user)
+	json.NewDecoder(response.Body).Decode(&user)
 
 	return c.JSON(user)
 }
