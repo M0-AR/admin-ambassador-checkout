@@ -4,19 +4,23 @@ import (
 	"admin-ambassador-checkout/src/models"
 	"admin-ambassador-checkout/src/services"
 	"encoding/json"
-	"github.com/dgrijalva/jwt-go"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"strings"
 )
 
-const SecretKey = "secret"
-
-type ClaimsWithScope struct {
-	jwt.StandardClaims
-	Scope string
-}
-
 func IsAuthenticated(c *fiber.Ctx) error {
-	response, err := services.UserService.Get("user", c.Cookies("jwt", ""))
+	isAmbassador := strings.Contains(c.Path(), "/api/ambassador")
+
+	var scope string
+
+	if isAmbassador {
+		scope = "ambassador"
+	} else {
+		scope = "admin"
+	}
+
+	response, err := services.UserService.Get(fmt.Sprintf("user/%s", scope), c.Cookies("jwt", ""))
 
 	if err != nil {
 		c.Status(fiber.StatusUnauthorized)
